@@ -112,7 +112,6 @@ const Hero = () => {
               >
                 {index > 0 && <span aria-hidden="true">•</span>}
                 {service.name}
-                <h1>Name with work</h1>
                 {enabled && (
                   <CmsItemToolbar
                     orientation="horizontal"
