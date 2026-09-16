@@ -87,7 +87,7 @@ const Hero = () => {
       <div className="absolute inset-0">
         <EditableVideo
           k="hero.video"
-          fallbackSrc="/public/videos/ProVisuell_Hero_Video.mp4"
+          fallbackSrc="/videos/ProVisuell_Hero_Video.mp4"
           className="h-full w-full object-cover"
         />
       </div>
