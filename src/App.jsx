@@ -21,6 +21,7 @@ import Kundebetalinger from "./dashboard/pages/Kundebetalinger"
 import Utgifter from "./dashboard/pages/Utgifter"
 import Rapporter from "./dashboard/pages/Rapporter"
 import WebsiteEditor from "./dashboard/pages/WebsiteEditor"
+import Lokasjoner from "./dashboard/pages/Lokasjoner"
 
 function App() {
   return (
@@ -79,6 +80,7 @@ function App() {
           <Route path="kundebetalinger" element={<Kundebetalinger />} />
           <Route path="utgifter" element={<Utgifter />} />
           <Route path="rapporter" element={<Rapporter />} />
+          <Route path="lokasjoner" element={<Lokasjoner />} />
         </Route>
 
         <Route
@@ -97,6 +99,7 @@ function App() {
           <Route path="kundebetalinger" element={<Kundebetalinger />} />
           <Route path="utgifter" element={<Utgifter />} />
           <Route path="rapporter" element={<Rapporter />} />
+          <Route path="lokasjoner" element={<Lokasjoner />} />
           <Route path="website-editor" element={<WebsiteEditor />} />
         </Route>
       </Routes>

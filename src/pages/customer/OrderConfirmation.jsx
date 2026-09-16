@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { CalendarClock, CheckCircle2, Clock, FileDown, FileText, LayoutGrid, Wallet } from "lucide-react"
+import { CalendarClock, CheckCircle2, Clock, FileDown, FileText, LayoutGrid, MapPin, Wallet } from "lucide-react"
 import { api } from "../../lib/api"
 import { useTranslation } from "../../i18n"
+import LocationPickerModal from "../../components/LocationPickerModal"
+import { ACCURACY_QUALITY_STYLE, getAccuracyQuality } from "../../lib/locationQuality"
 
 function getStatusCopy(t) {
   return {
@@ -37,6 +39,13 @@ function isValidDate(value) {
   return Boolean(value) && !Number.isNaN(new Date(value).getTime())
 }
 
+function formatDateTime(value) {
+  if (!value) return "–"
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return "–"
+  return d.toLocaleString("no-NO", { dateStyle: "medium", timeStyle: "short" })
+}
+
 // Delivery date once approved, actual completion date once delivered.
 function orderDateInfo(order, t) {
   if (order.status === "completed") {
@@ -55,6 +64,10 @@ export default function OrderConfirmation() {
   const { id } = useParams()
   const [order, setOrder] = useState(null)
   const [error, setError] = useState("")
+  const [location, setLocation] = useState(null)
+  const [loadingLocation, setLoadingLocation] = useState(true)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const locationSectionRef = useRef(null)
 
   useEffect(() => {
     api
@@ -62,6 +75,27 @@ export default function OrderConfirmation() {
       .then((data) => setOrder(data.order))
       .catch((err) => setError(err.message))
   }, [id])
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .get(`/locations/order/${id}`)
+      .then((data) => !cancelled && setLocation(data.location))
+      .catch(() => {})
+      .finally(() => !cancelled && setLoadingLocation(false))
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  // Lets "Del lokasjon" on the order list jump straight to this section
+  // (e.g. /mine-bestillinger/:id#service-location) without auto-requesting
+  // geolocation — the customer still has to click the share button.
+  useEffect(() => {
+    if (!loadingLocation && window.location.hash === "#service-location") {
+      locationSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }, [loadingLocation])
 
   if (error) {
     return (
@@ -138,6 +172,52 @@ export default function OrderConfirmation() {
           </div>
         </div>
 
+        <div
+          id="service-location"
+          ref={locationSectionRef}
+          className="mt-[16px] w-full rounded-[16px] border border-[#ff4b00]/25 bg-[#111212] p-[22px] text-left"
+        >
+          <div className="flex items-center gap-[10px]">
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#ff4b00]/15 text-[#ff4b00]">
+              <MapPin size={17} />
+            </span>
+            <p className="text-[15px] font-[800] text-white">{t("locationPicker.sectionTitle")}</p>
+          </div>
+          <p className="mt-[8px] text-[13px] leading-[1.5] text-white/60">{t("locationPicker.description")}</p>
+
+          {loadingLocation ? (
+            <p className="mt-[14px] text-[13px] text-white/40">{t("common.loading")}</p>
+          ) : location ? (
+            <div className="mt-[14px] rounded-[10px] border border-emerald-500/25 bg-emerald-500/[0.06] px-[14px] py-[12px]">
+              <p className="text-[13px] font-[700] text-emerald-300">{t("locationPicker.sharedTitle")}</p>
+              <p className="mt-[4px] text-[12.5px] text-white/65">
+                {t("locationPicker.lastUpdatedLabel")}: {formatDateTime(location.locatedAt || location.updatedAt)}
+              </p>
+              {Number.isFinite(location.locationAccuracy) && (
+                <p className="mt-[2px] flex items-center gap-[6px] text-[12.5px] text-white/65">
+                  {t("locationPicker.accuracyValue", { n: Math.round(location.locationAccuracy) })}
+                  {(() => {
+                    const quality = getAccuracyQuality(location.locationAccuracy)
+                    return (quality === "low" || quality === "unreliable") && (
+                      <span className={`text-[11px] font-[700] ${ACCURACY_QUALITY_STYLE[quality]}`}>
+                        · {t(`locationPicker.quality_${quality}`)}
+                      </span>
+                    )
+                  })()}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="mt-[14px] w-full rounded-[10px] bg-[#ff4b00] py-[12px] text-[13px] font-[800] uppercase tracking-[0.02em] text-white hover:brightness-110"
+          >
+            {location ? t("locationPicker.updateButton") : t("locationPicker.shareButton")}
+          </button>
+        </div>
+
         {order.invoice && order.status === "completed" && (
           <Link
             to={`/faktura/${order.invoice._id}`}
@@ -163,6 +243,15 @@ export default function OrderConfirmation() {
           </Link>
         </div>
       </main>
+
+      {pickerOpen && (
+        <LocationPickerModal
+          order={order}
+          initialLocation={location}
+          onClose={() => setPickerOpen(false)}
+          onSaved={(saved) => setLocation(saved)}
+        />
+      )}
     </div>
   )
 }

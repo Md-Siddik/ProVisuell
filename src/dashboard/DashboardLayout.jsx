@@ -8,6 +8,7 @@ import {
   Home,
   LayoutDashboard,
   LogOut,
+  MapPin,
   MessageSquare,
   Settings,
   TrendingUp,
@@ -33,6 +34,7 @@ function navItemsFor(t, role, base) {
   items.push({ to: `${base}/kundebetalinger`, label: t("nav.customerPayments"), icon: CreditCard })
   items.push({ to: `${base}/utgifter`, label: t("nav.expenses"), icon: Wallet })
   items.push({ to: `${base}/rapporter`, label: t("nav.reports"), icon: TrendingUp })
+  items.push({ to: `${base}/lokasjoner`, label: t("nav.locations"), icon: MapPin })
   if (role === "administrator") {
     items.push({ to: `${base}/website-editor`, label: t("nav.websiteEditor"), icon: Globe })
   }

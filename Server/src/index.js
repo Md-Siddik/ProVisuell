@@ -19,6 +19,7 @@ import notificationRoutes from "./routes/notifications.js"
 import invoiceRoutes from "./routes/invoices.js"
 import siteContentRoutes from "./routes/siteContent.js"
 import cmsCollectionsRoutes from "./routes/cmsCollections.js"
+import locationRoutes from "./routes/locations.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -56,6 +57,7 @@ app.use("/api/notifications", notificationRoutes)
 app.use("/api/invoices", invoiceRoutes)
 app.use("/api/site-content", siteContentRoutes)
 app.use("/api/cms-collections", cmsCollectionsRoutes)
+app.use("/api/locations", locationRoutes)
 
 // Centralized error handler so a thrown/rejected error in a route
 // doesn't take the whole process down.

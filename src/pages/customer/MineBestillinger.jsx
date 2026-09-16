@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { CalendarClock, FileDown } from "lucide-react"
+import { CalendarClock, FileDown, MapPin } from "lucide-react"
 import { api } from "../../lib/api"
 import MeetingTooEarlyModal from "../../components/MeetingTooEarlyModal"
 import { useTranslation } from "../../i18n"
@@ -48,6 +48,7 @@ export default function MineBestillinger() {
   const { t } = useTranslation()
   const [orders, setOrders] = useState([])
   const [loadingOrders, setLoadingOrders] = useState(true)
+  const [orderIdsWithLocation, setOrderIdsWithLocation] = useState(new Set())
   const [appointments, setAppointments] = useState([])
   const [loadingAppointments, setLoadingAppointments] = useState(true)
   const [tooEarly, setTooEarly] = useState(null)
@@ -61,6 +62,17 @@ export default function MineBestillinger() {
       .finally(() => !cancelled && setLoadingOrders(false))
     // Viewing this page is what clears the "Min side" notification badge.
     api.post("/orders/mark-seen").catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .get("/locations/mine")
+      .then((data) => !cancelled && setOrderIdsWithLocation(new Set(data.orderIds)))
+      .catch(() => {})
     return () => {
       cancelled = true
     }
@@ -112,35 +124,49 @@ export default function MineBestillinger() {
           )}
           {orders.map((o) => {
             const dateInfo = orderDateInfo(o, t)
+            const needsLocation = ["pending", "approved"].includes(o.status) && !orderIdsWithLocation.has(o._id)
             return (
-              <div
-                key={o._id}
-                className="flex items-center justify-between gap-[12px] rounded-[14px] border border-white/[0.08] bg-[#111212] p-[18px] transition hover:border-white/20"
-              >
-                <Link to={`/mine-bestillinger/${o._id}`} className="min-w-0 flex-1">
-                  <p className="text-[14px] font-[700] text-white">#{o.orderNumber}</p>
-                  <p className="mt-[2px] text-[13px] text-white/50">{o.service}</p>
-                  {dateInfo && (
-                    <p className="mt-[2px] text-[12px] text-white/40">
-                      {dateInfo.label}: {formatDate(dateInfo.value)}
-                    </p>
-                  )}
-                </Link>
-                <div className="flex shrink-0 items-center gap-[10px]">
-                  {o.invoice && o.status === "completed" && (
-                    <Link
-                      to={`/faktura/${o.invoice._id}`}
-                      title={t("myOrdersPage.downloadInvoiceTitle")}
-                      className="flex h-[32px] items-center gap-[6px] rounded-[6px] border border-[#ff4b00]/40 bg-[#ff4b00]/[0.08] px-[10px] text-[11px] font-[700] text-[#ff4b00] hover:bg-[#ff4b00]/[0.16]"
-                    >
-                      <FileDown size={13} />
-                      {t("myOrdersPage.invoiceLabel")}
-                    </Link>
-                  )}
-                  <span className={`rounded-[6px] border px-[10px] py-[4px] text-[11px] font-[800] ${STATUS_STYLE[o.status]}`}>
-                    {t(`status.${o.status}`)}
-                  </span>
+              <div key={o._id} className="rounded-[14px] border border-white/[0.08] bg-[#111212] transition hover:border-white/20">
+                <div className="flex items-center justify-between gap-[12px] p-[18px]">
+                  <Link to={`/mine-bestillinger/${o._id}`} className="min-w-0 flex-1">
+                    <p className="text-[14px] font-[700] text-white">#{o.orderNumber}</p>
+                    <p className="mt-[2px] text-[13px] text-white/50">{o.service}</p>
+                    {dateInfo && (
+                      <p className="mt-[2px] text-[12px] text-white/40">
+                        {dateInfo.label}: {formatDate(dateInfo.value)}
+                      </p>
+                    )}
+                  </Link>
+                  <div className="flex shrink-0 items-center gap-[10px]">
+                    {o.invoice && o.status === "completed" && (
+                      <Link
+                        to={`/faktura/${o.invoice._id}`}
+                        title={t("myOrdersPage.downloadInvoiceTitle")}
+                        className="flex h-[32px] items-center gap-[6px] rounded-[6px] border border-[#ff4b00]/40 bg-[#ff4b00]/[0.08] px-[10px] text-[11px] font-[700] text-[#ff4b00] hover:bg-[#ff4b00]/[0.16]"
+                      >
+                        <FileDown size={13} />
+                        {t("myOrdersPage.invoiceLabel")}
+                      </Link>
+                    )}
+                    <span className={`rounded-[6px] border px-[10px] py-[4px] text-[11px] font-[800] ${STATUS_STYLE[o.status]}`}>
+                      {t(`status.${o.status}`)}
+                    </span>
+                  </div>
                 </div>
+                {needsLocation && (
+                  <div className="flex flex-wrap items-center justify-between gap-[10px] border-t border-[#ff4b00]/20 bg-[#ff4b00]/[0.06] px-[18px] py-[12px]">
+                    <span className="flex items-center gap-[8px] text-[12.5px] text-[#ff4b00]">
+                      <MapPin size={14} />
+                      {t("myOrdersPage.locationReminderText")}
+                    </span>
+                    <Link
+                      to={`/mine-bestillinger/${o._id}#service-location`}
+                      className="rounded-[7px] bg-[#ff4b00] px-[12px] py-[6px] text-[11.5px] font-[800] uppercase tracking-[0.02em] text-white hover:brightness-110"
+                    >
+                      {t("myOrdersPage.locationReminderButton")}
+                    </Link>
+                  </div>
+                )}
               </div>
             )
           })}
