@@ -23,6 +23,16 @@ html {
   scroll-behavior: smooth;
 }
 
+html,
+body {
+  /* Backstop, not the fix — every known source of horizontal overflow
+     (fixed-width dropdowns, nowrap text, etc.) is sized/wrapped correctly
+     at its own source. This only guards against a genuinely unforeseen
+     child ever forcing the page itself into a sideways scroll. */
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   min-width: 320px;

@@ -63,7 +63,7 @@ export const sv = {
     about: "Om oss",
     contact: "Kontakt",
     login: "Logga in",
-    startProject: "Starta projekt",
+    startProject: "Beställ nu",
     myPage: "Min sida",
     logout: "Logga ut",
     menuAriaLabel: "Meny",

@@ -6,6 +6,7 @@ import PublicLayout from "./layouts/PublicLayout"
 import MarketingSite from "./pages/MarketingSite"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
+import VerifyEmail from "./pages/VerifyEmail"
 import DashboardRedirect from "./pages/DashboardRedirect"
 import MineBestillinger from "./pages/customer/MineBestillinger"
 import OrderConfirmation from "./pages/customer/OrderConfirmation"
@@ -31,6 +32,7 @@ function App() {
           <Route path="/" element={<MarketingSite />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route
             path="/mine-bestillinger"
             element={

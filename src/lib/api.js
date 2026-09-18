@@ -1,4 +1,5 @@
 import { auth } from "../firebase/firebase.config"
+import { localizeApiError } from "../i18n/apiErrorMessages"
 
 const API_ROOT = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/quotes$/, "").replace(/\/$/, "")
 
@@ -28,7 +29,14 @@ async function request(path, { method = "GET", body, auth: needsAuth = true, isF
   }
 
   if (!res.ok) {
-    throw new Error(data?.error || `Request failed (${res.status})`)
+    const rawMessage = data?.error || `Request failed (${res.status})`
+    const err = new Error(localizeApiError(rawMessage))
+    // A few callers pattern-match on the specific English/Norwegian text the
+    // backend sent (e.g. "is this the booking-conflict error?") to branch UI
+    // behavior — that check must run against the original, not the localized
+    // message, so it keeps working regardless of the selected language.
+    err.rawMessage = rawMessage
+    throw err
   }
   return data
 }

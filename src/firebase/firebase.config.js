@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -19,4 +19,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+// Explicit local (IndexedDB) persistence — the session must survive a
+// browser/tab restart, not just a reload, without the user signing in again.
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  console.error("Failed to set auth persistence:", err.message)
+})
 export default app;

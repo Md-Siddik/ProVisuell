@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "../i18n"
 import { useEditorMode } from "../dashboard/editor/EditorModeContext"
 import { useCmsCollection } from "../dashboard/editor/useCmsCollection"
 import CmsItemToolbar from "../dashboard/editor/CmsItemToolbar"
@@ -16,6 +17,7 @@ function slugify(name) {
 }
 
 export default function Pillars() {
+  const { t } = useTranslation()
   const { enabled } = useEditorMode()
   const { items, addItem, updateItem, deleteItem, reorder } = useCmsCollection("services")
   const [editingItem, setEditingItem] = useState(null) // null = closed, {} = new item, item = editing
@@ -82,7 +84,7 @@ export default function Pillars() {
               <CmsItemToolbar
                 published={item.published}
                 onEdit={(e) => openEditor(item, e)}
-                onDelete={() => confirm(`Delete "${item.name}"?`) && deleteItem(item._id)}
+                onDelete={() => confirm(t("common.confirmDeleteItem", { name: item.name })) && deleteItem(item._id)}
                 onTogglePublish={() => updateItem(item._id, { published: !item.published })}
                 onMoveUp={() => move(index, -1)}
                 onMoveDown={() => move(index, 1)}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { AlertCircle, Send } from "lucide-react"
+import { AlertCircle, ChevronLeft, Send } from "lucide-react"
 import { api } from "../../lib/api"
 import { useTranslation } from "../../i18n"
 
@@ -47,6 +47,9 @@ export default function Meldinger() {
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState("")
   const [customerTypingAt, setCustomerTypingAt] = useState(null)
+  // Below `lg`, the list and the open thread are two separate full-width
+  // screens (not a permanent split view) — this tracks which one is showing.
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
   const listRef = useRef(null)
   const textareaRef = useRef(null)
   const lastTypingPingRef = useRef(0)
@@ -197,7 +200,7 @@ export default function Meldinger() {
       <p className="mt-[4px] text-[14px] text-white/50">{t("messagesPage.subtitle")}</p>
 
       <div className="mt-[18px] grid grid-cols-1 overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#111212] lg:grid-cols-[280px_1fr]" style={{ minHeight: 520 }}>
-        <div className="border-b border-white/[0.08] lg:border-b-0 lg:border-r">
+        <div className={`border-b border-white/[0.08] lg:border-b-0 lg:border-r ${mobileDetailOpen ? "hidden lg:block" : ""}`}>
           {loading && <p className="p-[16px] text-[13px] text-white/40">{t("messagesPage.loadingConversations")}</p>}
           {!loading && conversations.length === 0 && (
             <p className="p-[16px] text-[13px] text-white/40">{t("messagesPage.noConversations")}</p>
@@ -207,7 +210,10 @@ export default function Meldinger() {
             return (
               <button
                 key={c._id}
-                onClick={() => setActiveId(c._id)}
+                onClick={() => {
+                  setActiveId(c._id)
+                  setMobileDetailOpen(true)
+                }}
                 className={`flex w-full items-center gap-[12px] border-b border-white/[0.06] px-[16px] py-[14px] text-left transition-colors ${
                   activeId === c._id ? "bg-[#ff4b00]/10" : "hover:bg-white/[0.03]"
                 }`}
@@ -234,16 +240,26 @@ export default function Meldinger() {
           })}
         </div>
 
-        <div className="flex flex-col">
+        <div className={`flex-col ${mobileDetailOpen ? "flex" : "hidden lg:flex"}`}>
           {!active ? (
             <div className="flex flex-1 items-center justify-center p-[24px] text-[13px] text-white/40">
               {t("messagesPage.selectConversation")}
             </div>
           ) : (
             <>
-              <div className="notranslate border-b border-white/[0.08] px-[18px] py-[14px]" translate="no">
-                <p className="text-[14px] font-[700] text-white">{active.customerName}</p>
-                <p className="text-[12px] text-white/45">{active.customerEmail}</p>
+              <div className="notranslate flex items-center gap-[10px] border-b border-white/[0.08] px-[18px] py-[14px]" translate="no">
+                <button
+                  type="button"
+                  onClick={() => setMobileDetailOpen(false)}
+                  aria-label={t("messagesPage.backToList")}
+                  className="-ml-[6px] flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/[0.06] hover:text-white lg:hidden"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <div className="min-w-0">
+                  <p className="truncate text-[14px] font-[700] text-white">{active.customerName}</p>
+                  <p className="truncate text-[12px] text-white/45">{active.customerEmail}</p>
+                </div>
               </div>
 
               <div ref={listRef} translate="no" className="notranslate flex-1 space-y-[10px] overflow-y-auto px-[18px] py-[16px]" style={{ maxHeight: 380 }}>

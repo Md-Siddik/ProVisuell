@@ -17,8 +17,13 @@ export default function WebsiteEditor() {
   return (
     <EditorModeProvider>
       <div className="-m-[20px] lg:-m-[32px]">
-        <div className="sticky top-0 z-[200] flex items-center justify-center gap-[8px] bg-[#ff4b00] px-[16px] py-[8px] text-[12px] font-[700] uppercase tracking-[0.04em] text-white">
-          <Pencil size={13} />
+        {/* Sticky (not fixed) so it stays scoped to the dashboard's own
+            scrollable content area instead of floating over the real
+            DashboardLayout topbar. A small floating pill rather than a
+            full-width bar — it used to sit flush against the preview's own
+            Header, crowding whatever was directly underneath it. */}
+        <div className="sticky top-[8px] z-[300] mx-auto mb-[8px] flex w-fit items-center gap-[8px] rounded-full bg-[#ff4b00] px-[14px] py-[7px] text-[11px] font-[700] uppercase tracking-[0.04em] text-white shadow-[0_6px_18px_rgba(0,0,0,0.35)]">
+          <Pencil size={12} />
           Editor mode — double-click any text or image to edit it live
         </div>
         {/* Header.jsx uses position:fixed for the real site's viewport-pinned

@@ -68,7 +68,7 @@ export default function BookMeetingModal({ onClose }) {
     } catch (err) {
       setError(err.message)
       // The slot might have just been taken by someone else — refresh the list.
-      if (err.message.includes("nettopp booket")) {
+      if ((err.rawMessage || err.message).includes("nettopp booket")) {
         const data = await api.get(`/appointments/availability?date=${date}`).catch(() => null)
         if (data) setSlots(data.slots)
         setSelectedSlot(null)

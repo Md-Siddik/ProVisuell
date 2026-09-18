@@ -7,27 +7,36 @@ import {
   updateProfile,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
 } from "firebase/auth"
 import { auth } from "../firebase/firebase.config"
-import { api } from "./api"
+import { getCurrentLanguageDict } from "../i18n/apiErrorMessages"
 
 const googleProvider = new GoogleAuthProvider()
 const microsoftProvider = new OAuthProvider("microsoft.com")
+
+// Where the "Continue" link on Firebase's hosted verification page sends the
+// visitor back to. Built from the current origin so it always matches
+// wherever the app is actually running (localhost, staging, production).
+function verificationActionCodeSettings() {
+  return { url: `${window.location.origin}/login` }
+}
+
+export async function sendVerificationEmail(user) {
+  const target = user || auth.currentUser
+  if (!target) return
+  await sendEmailVerification(target, verificationActionCodeSettings())
+}
 
 export async function signUpWithEmail(name, email, password) {
   const cred = await createUserWithEmailAndPassword(auth, email, password)
   if (name) {
     await updateProfile(cred.user, { displayName: name })
-    // AuthContext's own onAuthStateChanged-triggered sync can fire before
-    // this displayName update lands (it's set by the account-creation
-    // event, not this call), which would save the profile with no name.
-    // Sync explicitly here, now that the name is guaranteed to be current.
-    try {
-      await api.post("/auth/sync", { name })
-    } catch {
-      // AuthContext's own sync will still run and catch up eventually.
-    }
   }
+  // Real Firebase verification link — the account stays unverified (and
+  // AuthContext withholds the application profile/access) until the visitor
+  // clicks it.
+  await sendVerificationEmail(cred.user)
   return cred.user
 }
 
@@ -54,19 +63,22 @@ export async function logout() {
   await signOut(auth)
 }
 
-// Human-readable Norwegian messages for the login/signup forms.
+// Human-readable message for the login/signup forms, in whatever language
+// is currently selected (see i18n/locales/*.js "authErrors").
 export function friendlyAuthError(err) {
   const code = err?.code || ""
-  const map = {
-    "auth/invalid-email": "Ugyldig e-postadresse.",
-    "auth/user-disabled": "Denne kontoen er deaktivert.",
-    "auth/user-not-found": "Fant ingen konto med denne e-posten.",
-    "auth/wrong-password": "Feil passord.",
-    "auth/invalid-credential": "Feil e-post eller passord.",
-    "auth/email-already-in-use": "Det finnes allerede en konto med denne e-posten.",
-    "auth/weak-password": "Passordet må være minst 6 tegn.",
-    "auth/popup-closed-by-user": "Innlogging avbrutt.",
-    "auth/network-request-failed": "Nettverksfeil. Prøv igjen.",
-  }
-  return map[code] || "Noe gikk galt. Prøv igjen."
+  const key = {
+    "auth/invalid-email": "invalidEmail",
+    "auth/user-disabled": "userDisabled",
+    "auth/user-not-found": "userNotFound",
+    "auth/wrong-password": "wrongPassword",
+    "auth/invalid-credential": "invalidCredential",
+    "auth/email-already-in-use": "emailAlreadyInUse",
+    "auth/weak-password": "weakPassword",
+    "auth/popup-closed-by-user": "popupClosedByUser",
+    "auth/network-request-failed": "networkRequestFailed",
+    "auth/too-many-requests": "tooManyRequests",
+  }[code]
+  const dict = getCurrentLanguageDict()
+  return (key && dict.authErrors?.[key]) || dict.authErrors.generic
 }

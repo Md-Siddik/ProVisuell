@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import {
   CalendarClock,
@@ -8,17 +9,20 @@ import {
   Home,
   LayoutDashboard,
   LogOut,
+  Menu,
   MapPin,
   MessageSquare,
   Settings,
   TrendingUp,
   Wallet,
+  X,
 } from "lucide-react"
 import Logo from "../components/Logo"
 import NotificationBell from "../components/NotificationBell"
 import UnreadBadge from "../components/UnreadBadge"
 import { useAuth } from "../context/AuthContext"
 import { logout } from "../lib/firebaseAuth"
+import { getDisplayName, getInitials } from "../lib/displayName"
 import { useUnreadMessages } from "../hooks/useUnreadMessages"
 import { useTranslation } from "../i18n"
 
@@ -41,13 +45,40 @@ function navItemsFor(t, role, base) {
   return items
 }
 
+function NavList({ items, unreadMessages, onNavigate }) {
+  return (
+    <>
+      {items.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end={item.end}
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            `flex items-center gap-[12px] rounded-[10px] px-[14px] py-[11px] text-[14px] font-[600] transition-colors ${
+              isActive
+                ? "border border-[#ff4b00]/40 bg-[#ff4b00]/10 text-[#ff4b00]"
+                : "text-white/65 hover:bg-white/[0.05] hover:text-white"
+            }`
+          }
+        >
+          <item.icon size={17} />
+          {item.label}
+          {item.to.endsWith("/meldinger") && <UnreadBadge count={unreadMessages} className="ml-auto" />}
+        </NavLink>
+      ))}
+    </>
+  )
+}
+
 export default function DashboardLayout() {
-  const { profile, role } = useAuth()
+  const { profile, role, firebaseUser } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
   const ROLE_LABEL = { owner: t("roles.owner"), administrator: t("roles.administrator"), customer: t("roles.customer") }
   const base = role === "owner" ? "/dashboard/owner" : "/dashboard/admin"
   const items = navItemsFor(t, role, base)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   // A dedicated badge on the "Meldinger" icon itself, separate from (and in
   // addition to) the generic notification bell, so a new customer message
@@ -55,12 +86,13 @@ export default function DashboardLayout() {
   // header and dashboard home via the same hook, so all three agree.
   const unreadMessages = useUnreadMessages()
 
-  const initials = (profile?.name || profile?.email || "?")
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
+  const initials = getInitials(profile, firebaseUser) || "?"
+
+  // A route change (e.g. tapping a nav link) should always close the mobile
+  // drawer — otherwise it's still open, covering the page it just navigated to.
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [location.pathname])
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-black text-white">
@@ -68,24 +100,7 @@ export default function DashboardLayout() {
         <Logo className="shrink-0 px-[8px] text-[22px]" />
 
         <nav className="mt-[32px] min-h-0 flex-1 space-y-[4px] overflow-y-auto">
-          {items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `flex items-center gap-[12px] rounded-[10px] px-[14px] py-[11px] text-[14px] font-[600] transition-colors ${
-                  isActive
-                    ? "border border-[#ff4b00]/40 bg-[#ff4b00]/10 text-[#ff4b00]"
-                    : "text-white/65 hover:bg-white/[0.05] hover:text-white"
-                }`
-              }
-            >
-              <item.icon size={17} />
-              {item.label}
-              {item.to.endsWith("/meldinger") && <UnreadBadge count={unreadMessages} className="ml-auto" />}
-            </NavLink>
-          ))}
+          <NavList items={items} unreadMessages={unreadMessages} />
         </nav>
 
         <div className="mt-auto flex shrink-0 flex-col gap-[4px] border-t border-white/[0.08] pt-[14px]">
@@ -103,22 +118,74 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      <div className="flex h-full min-w-0 flex-1 flex-col">
-        <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#0a0a0a] px-[20px] lg:px-[28px]">
-          <Logo className="text-[19px] lg:hidden" />
-          <span className="hidden text-[15px] font-[600] text-white/80 lg:block">
-            {items.find((i) => location.pathname === i.to)?.label || t("nav.dashboard")}
-          </span>
+      {/* Mobile sidebar drawer — the desktop <aside> above is display:none
+          below lg, so without this, nothing (including Messages) is
+          reachable on a phone at all. */}
+      <div
+        onClick={() => setMobileNavOpen(false)}
+        aria-hidden="true"
+        className={`fixed inset-0 z-[70] bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 lg:hidden ${
+          mobileNavOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+      <aside
+        className={`fixed inset-y-0 left-0 z-[80] flex w-[270px] max-w-[80vw] flex-col border-r border-white/[0.08] bg-[#0a0a0a] px-[18px] py-[20px] transition-transform duration-300 lg:hidden ${
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex shrink-0 items-center justify-between">
+          <Logo className="px-[4px] text-[19px]" />
+          <button
+            type="button"
+            aria-label={t("header.menuAriaLabel")}
+            onClick={() => setMobileNavOpen(false)}
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-[8px] text-white/70 hover:bg-white/[0.06] hover:text-white"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-          <div className="flex items-center gap-[14px]">
+        <nav className="mt-[24px] min-h-0 flex-1 space-y-[4px] overflow-y-auto">
+          <NavList items={items} unreadMessages={unreadMessages} onNavigate={() => setMobileNavOpen(false)} />
+        </nav>
+
+        <div className="mt-auto flex shrink-0 flex-col gap-[4px] border-t border-white/[0.08] pt-[14px]">
+          <button
+            onClick={() => logout()}
+            className="flex items-center gap-[12px] rounded-[10px] px-[14px] py-[11px] text-[14px] font-[600] text-white/50 transition-colors hover:bg-white/[0.05] hover:text-white"
+          >
+            <LogOut size={17} />
+            {t("nav.logout")}
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex h-full min-w-0 flex-1 flex-col">
+        <header className="flex h-[72px] shrink-0 items-center justify-between gap-[10px] border-b border-white/[0.08] bg-[#0a0a0a] px-[14px] sm:px-[20px] lg:px-[28px]">
+          <div className="flex min-w-0 items-center gap-[10px]">
+            <button
+              type="button"
+              aria-label={t("header.menuAriaLabel")}
+              onClick={() => setMobileNavOpen(true)}
+              className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[8px] border border-white/15 text-white lg:hidden"
+            >
+              <Menu size={18} />
+            </button>
+            <Logo className="shrink-0 text-[17px] lg:hidden" />
+            <span className="hidden truncate text-[15px] font-[600] text-white/80 lg:block">
+              {items.find((i) => location.pathname === i.to)?.label || t("nav.dashboard")}
+            </span>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-[10px] sm:gap-[14px]">
             <NotificationBell />
             <div className="flex items-center gap-[10px]">
-              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#ff4b00]/15 text-[13px] font-[700] text-[#ff4b00]">
+              <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-[#ff4b00]/15 text-[13px] font-[700] text-[#ff4b00]">
                 {initials}
               </div>
               <div className="hidden text-right sm:block">
                 <p className="text-[13px] font-[700] leading-none text-white">
-                  {profile?.name || profile?.email?.split("@")[0] || ""}
+                  {getDisplayName(profile, firebaseUser)}
                 </p>
                 <p className="mt-[3px] text-[11px] leading-none text-white/45">{ROLE_LABEL[role] || role}</p>
               </div>
@@ -126,7 +193,7 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto bg-[#0d0d0d] p-[20px] lg:p-[32px]">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-[#0d0d0d] p-[14px] sm:p-[20px] lg:p-[32px]">
           <Outlet />
         </main>
       </div>

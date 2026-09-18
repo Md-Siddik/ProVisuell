@@ -76,7 +76,7 @@ export default function Portfolio() {
                   <CmsItemToolbar
                     published={item.published}
                     onEdit={(e) => openEditor(item, e)}
-                    onDelete={() => confirm(`Delete "${item.title}"?`) && deleteItem(item._id)}
+                    onDelete={() => confirm(t("common.confirmDeleteItem", { name: item.title })) && deleteItem(item._id)}
                     onTogglePublish={() => updateItem(item._id, { published: !item.published })}
                     onMoveUp={() => move(index, -1)}
                     onMoveDown={() => move(index, 1)}

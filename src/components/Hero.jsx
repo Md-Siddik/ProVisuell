@@ -117,7 +117,7 @@ const Hero = () => {
                     orientation="horizontal"
                     published={service.published}
                     onEdit={(e) => openEditor(service, e)}
-                    onDelete={() => confirm(`Delete "${service.name}"?`) && deleteItem(service._id)}
+                    onDelete={() => confirm(t("common.confirmDeleteItem", { name: service.name })) && deleteItem(service._id)}
                     onTogglePublish={() => updateItem(service._id, { published: !service.published })}
                     onMoveUp={() => move(index, -1)}
                     onMoveDown={() => move(index, 1)}

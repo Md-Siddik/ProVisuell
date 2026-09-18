@@ -63,7 +63,7 @@ export const fi = {
     about: "Meistä",
     contact: "Yhteystiedot",
     login: "Kirjaudu sisään",
-    startProject: "Aloita projekti",
+    startProject: "Tilaa nyt",
     myPage: "Oma sivu",
     logout: "Kirjaudu ulos",
     menuAriaLabel: "Valikko",

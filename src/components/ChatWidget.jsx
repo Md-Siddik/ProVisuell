@@ -4,6 +4,7 @@ import { AlertCircle, CalendarClock, Mail, MessageSquare, Send, ShoppingBag, X }
 import { chatStorage } from "../lib/chatStorage"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../lib/api"
+import { getDisplayName } from "../lib/displayName"
 import BookMeetingModal from "./BookMeetingModal"
 import EmailComposeModal from "./EmailComposeModal"
 import LoginRequiredModal from "./LoginRequiredModal"
@@ -50,7 +51,11 @@ function TypingBubble() {
 
 const ChatWidget = () => {
   const { t } = useTranslation()
-  const { isAuthenticated, profile, role } = useAuth()
+  const { isAuthenticated, needsEmailVerification, profile, role, firebaseUser } = useAuth()
+  // A password account still waiting on email confirmation has a Firebase
+  // session but no application access yet — treat it like an anonymous
+  // visitor here so it doesn't fire authenticated fetches ahead of that.
+  const hasAccount = isAuthenticated && !needsEmailVerification
   const navigate = useNavigate()
   // Owner/administrator don't have a "conversation with support" of their
   // own — this same bottom-right bubble instead becomes their shortcut to
@@ -94,7 +99,7 @@ const ChatWidget = () => {
     if (isStaff) return
     let cancelled = false
     async function load() {
-      if (isAuthenticated) {
+      if (hasAccount) {
         const seq = ++requestSeqRef.current
         try {
           const { conversation } = await api.get("/messages/mine")
@@ -118,12 +123,12 @@ const ChatWidget = () => {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, isStaff])
+  }, [hasAccount, isStaff])
 
   // Light polling so a logged-in customer sees admin replies — and the
   // admin's live typing status — without needing to close/reopen the widget.
   useEffect(() => {
-    if (!open || !isAuthenticated || isStaff) return
+    if (!open || !hasAccount || isStaff) return
     const interval = setInterval(async () => {
       if (sendingRef.current) return // a send is in flight — let it settle first
       const seq = ++requestSeqRef.current
@@ -137,13 +142,13 @@ const ChatWidget = () => {
       }
     }, TYPING_PING_INTERVAL_MS)
     return () => clearInterval(interval)
-  }, [open, isAuthenticated, isStaff])
+  }, [open, hasAccount, isStaff])
 
   // While closed, check for an unread admin reply so the toggle button can
   // show a badge — opening the widget fetches /messages/mine, which clears
   // it server-side, so this only needs to run when closed.
   useEffect(() => {
-    if (open || !isAuthenticated || isStaff) {
+    if (open || !hasAccount || isStaff) {
       if (open) setUnreadCount(0)
       return
     }
@@ -162,7 +167,7 @@ const ChatWidget = () => {
       cancelled = true
       clearInterval(interval)
     }
-  }, [open, isAuthenticated, isStaff])
+  }, [open, hasAccount, isStaff])
 
   useEffect(() => {
     if (!listRef.current) return
@@ -227,7 +232,7 @@ const ChatWidget = () => {
     if (!text) return
     setDraft("")
     if (textareaRef.current) textareaRef.current.style.height = "auto"
-    if (isAuthenticated) {
+    if (hasAccount) {
       sendAuthenticated(text)
     } else {
       appendLocalMessage({ sender: "user", text })
@@ -235,7 +240,7 @@ const ChatWidget = () => {
   }
 
   const pingTyping = () => {
-    if (!isAuthenticated) return
+    if (!hasAccount) return
     const now = Date.now()
     if (now - lastTypingPingRef.current < TYPING_PING_INTERVAL_MS) return
     lastTypingPingRef.current = now
@@ -250,7 +255,7 @@ const ChatWidget = () => {
   }
 
   const handlePlaceOrder = () => {
-    if (isAuthenticated) {
+    if (hasAccount) {
       sendAuthenticated(t("chatWidget.orderIntentText"))
     } else {
       appendLocalMessage({ sender: "system", variant: "login-gate", text: t("chatWidget.loginGateMessage") })
@@ -283,8 +288,8 @@ const ChatWidget = () => {
         }
         className="
     fixed
-    bottom-[22px]
-    right-[22px]
+    [bottom:calc(22px+env(safe-area-inset-bottom,0px))]
+    [right:calc(22px+env(safe-area-inset-right,0px))]
     z-[999]
     flex
     h-[58px]
@@ -301,8 +306,8 @@ const ChatWidget = () => {
     hover:shadow-[0_12px_32px_rgba(0,0,0,0.36)]
     active:translate-y-0
     active:scale-[0.97]
-    sm:bottom-[28px]
-    sm:right-[28px]
+    sm:[bottom:calc(28px+env(safe-area-inset-bottom,0px))]
+    sm:[right:calc(28px+env(safe-area-inset-right,0px))]
   "
       >
         <span className="relative flex h-[22px] w-[22px] items-center justify-center">
@@ -351,7 +356,7 @@ const ChatWidget = () => {
       />
 
       <div
-        className={`fixed inset-x-[12px] top-[76px] bottom-[12px] z-[998] flex flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#111212] shadow-[0_24px_60px_rgba(0,0,0,0.55)] transition-all duration-300 sm:inset-x-auto sm:top-auto sm:bottom-[100px] sm:left-auto sm:right-[28px] sm:h-[600px] sm:max-h-[calc(100vh-140px)] sm:w-[380px] ${open ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-[16px] opacity-0"
+        className={`fixed inset-x-[12px] top-[76px] [bottom:calc(12px+env(safe-area-inset-bottom,0px))] z-[998] flex flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#111212] shadow-[0_24px_60px_rgba(0,0,0,0.55)] transition-all duration-300 sm:inset-x-auto sm:top-auto sm:bottom-[100px] sm:left-auto sm:right-[28px] sm:h-[600px] sm:max-h-[calc(100vh-140px)] sm:w-[380px] ${open ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-[16px] opacity-0"
           }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 bg-[#0a0a0a] px-[18px] py-[15px]">
@@ -361,7 +366,7 @@ const ChatWidget = () => {
               <span className="text-[17px] font-[800] tracking-[-0.03em] text-white">Visuell</span>
             </div>
             <p className="mt-[4px] text-[11px] text-white/50">
-              {isAuthenticated ? t("chatWidget.loggedInAs", { name: profile?.name || profile?.email || "" }) : t("chatWidget.replyTime")}
+              {hasAccount ? t("chatWidget.loggedInAs", { name: getDisplayName(profile, firebaseUser) }) : t("chatWidget.replyTime")}
             </p>
           </div>
           <button
@@ -419,7 +424,7 @@ const ChatWidget = () => {
           <div className="mb-[8px] grid grid-cols-2 gap-[8px]">
             <button
               type="button"
-              onClick={() => (isAuthenticated ? setShowBooking(true) : setShowLoginRequired(true))}
+              onClick={() => (hasAccount ? setShowBooking(true) : setShowLoginRequired(true))}
               className="inline-flex items-center justify-center gap-[6px] rounded-[10px] border border-white/15 px-[10px] py-[8px] text-[11px] font-[700] uppercase tracking-[0.02em] text-white/80 transition-colors hover:bg-white/[0.06]"
             >
               <CalendarClock size={13} />

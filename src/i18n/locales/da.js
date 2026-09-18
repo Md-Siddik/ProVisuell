@@ -63,7 +63,7 @@ export const da = {
     about: "Om os",
     contact: "Kontakt",
     login: "Log ind",
-    startProject: "Start projekt",
+    startProject: "Bestil nu",
     myPage: "Min side",
     logout: "Log ud",
     menuAriaLabel: "Menu",

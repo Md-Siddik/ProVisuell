@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Bell, CheckCheck } from "lucide-react"
+import { Bell, Check, CheckCheck } from "lucide-react"
 import { api } from "../lib/api"
 import { useTranslation } from "../i18n"
+import { OPEN_CHAT_EVENT } from "./StartOrderModal"
 
 const LOCALE_MAP = { no: "no-NO", en: "en-US", sv: "sv-SE", fi: "fi-FI", da: "da-DK" }
 
@@ -25,6 +26,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const [markingAll, setMarkingAll] = useState(false)
   const boxRef = useRef(null)
   const navigate = useNavigate()
 
@@ -68,19 +70,40 @@ export default function NotificationBell() {
     }
   }
 
-  const handleClickNotification = async (n) => {
+  const markRead = (id) => {
+    setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, read: true } : n)))
+    setUnreadCount((c) => Math.max(0, c - 1))
+    api.post(`/notifications/${id}/read`).catch(() => {})
+  }
+
+  const handleClickNotification = (n) => {
     setOpen(false)
-    if (!n.read) {
-      setUnreadCount((c) => Math.max(0, c - 1))
-      api.post(`/notifications/${n._id}/read`).catch(() => {})
-    }
+    if (!n.read) markRead(n._id)
+    // A customer's chat reply has no dedicated page — it lives in the
+    // floating ChatWidget, so open that instead of just landing on "/".
+    if (n.type === "chat_reply") window.dispatchEvent(new Event(OPEN_CHAT_EVENT))
     if (n.link) navigate(n.link)
   }
 
+  const handleMarkReadClick = (e, id) => {
+    e.stopPropagation()
+    markRead(id)
+  }
+
   const markAllRead = async () => {
+    // Nothing to do, and guards against a double-click firing the request
+    // twice while the first one is still in flight.
+    if (markingAll || !notifications.some((n) => !n.read)) return
+    setMarkingAll(true)
     setUnreadCount(0)
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-    api.post("/notifications/mark-all-read").catch(() => {})
+    try {
+      await api.post("/notifications/mark-all-read")
+    } catch {
+      // Best-effort — the next open/poll will reconcile the real state.
+    } finally {
+      setMarkingAll(false)
+    }
   }
 
   return (
@@ -100,14 +123,15 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[320px] overflow-hidden rounded-[12px] border border-white/10 bg-[#141515] shadow-xl">
+        <div className="fixed inset-x-[12px] top-[76px] z-50 overflow-hidden rounded-[12px] border border-white/10 bg-[#141515] shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[320px]">
           <div className="flex items-center justify-between border-b border-white/10 px-[14px] py-[11px]">
             <p className="text-[13px] font-[700] text-white">{t("notifications.title")}</p>
             {notifications.some((n) => !n.read) && (
               <button
                 type="button"
                 onClick={markAllRead}
-                className="flex items-center gap-[5px] text-[11px] font-[600] text-white/50 hover:text-white"
+                disabled={markingAll}
+                className="flex items-center gap-[5px] text-[11px] font-[600] text-white/50 hover:text-white disabled:opacity-50"
               >
                 <CheckCheck size={12} />
                 {t("notifications.markAllRead")}
@@ -125,7 +149,7 @@ export default function NotificationBell() {
                 key={n._id}
                 type="button"
                 onClick={() => handleClickNotification(n)}
-                className={`flex w-full flex-col items-start gap-[3px] border-b border-white/[0.06] px-[14px] py-[11px] text-left transition-colors last:border-0 hover:bg-white/[0.05] ${
+                className={`group flex w-full flex-col items-start gap-[3px] border-b border-white/[0.06] px-[14px] py-[11px] text-left transition-colors last:border-0 hover:bg-white/[0.05] ${
                   n.read ? "" : "bg-[#ff4b00]/[0.05]"
                 }`}
               >
@@ -133,6 +157,18 @@ export default function NotificationBell() {
                   {!n.read && <span className="h-[6px] w-[6px] shrink-0 rounded-full bg-[#ff4b00]" />}
                   <span className="truncate text-[12.5px] font-[700] text-white">{n.title}</span>
                   <span className="ml-auto shrink-0 text-[10px] text-white/35">{timeAgo(n.createdAt)}</span>
+                  {!n.read && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => handleMarkReadClick(e, n._id)}
+                      aria-label={t("notifications.markRead")}
+                      title={t("notifications.markRead")}
+                      className="shrink-0 rounded-full p-[3px] text-white/35 opacity-0 transition-opacity hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                    >
+                      <Check size={12} />
+                    </span>
+                  )}
                 </span>
                 {n.message && <span className="truncate text-[11.5px] text-white/50">{n.message}</span>}
               </button>

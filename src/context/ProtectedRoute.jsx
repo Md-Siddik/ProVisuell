@@ -5,7 +5,7 @@ import { useAuth } from "./AuthContext"
 // specific role). Unauthenticated visitors are bounced to /login with the
 // page they wanted stashed so they land back there after signing in.
 export default function ProtectedRoute({ roles, children }) {
-  const { isAuthenticated, role, loading } = useAuth()
+  const { isAuthenticated, role, loading, needsEmailVerification } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -18,6 +18,10 @@ export default function ProtectedRoute({ roles, children }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  if (needsEmailVerification) {
+    return <Navigate to="/verify-email" state={{ from: location.pathname }} replace />
   }
 
   if (roles && !roles.includes(role)) {

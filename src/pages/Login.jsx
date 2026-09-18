@@ -5,10 +5,10 @@ import { useAuth } from "../context/AuthContext"
 import { friendlyAuthError, loginWithEmail, loginWithGoogle, loginWithMicrosoft, resetPassword } from "../lib/firebaseAuth"
 import { useTranslation } from "../i18n"
 
-// Google/Microsoft sign-in are wired up but hidden until those OAuth
-// providers are enabled and tested in the Firebase console. Flip this back
-// on when they're ready — no other changes needed.
-const OAUTH_ENABLED = false
+// Microsoft sign-in is wired up but stays hidden until that OAuth provider
+// is enabled and tested in the Firebase console. Flip this back on when
+// it's ready — no other changes needed.
+const MICROSOFT_ENABLED = false
 
 export default function Login() {
   const { t } = useTranslation()
@@ -24,15 +24,17 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const redirectTo = location.state?.from || "/dashboard"
-  const { loading, isAuthenticated } = useAuth()
+  const { loading, isAuthenticated, needsEmailVerification } = useAuth()
 
   // See Signup.jsx for why this waits for `loading` to settle rather than
-  // navigating the instant Firebase resolves.
+  // navigating the instant Firebase resolves. A password account that
+  // hasn't confirmed its email yet is sent to the verification screen
+  // instead of straight into the app.
   useEffect(() => {
     if (awaitingProfile && !loading && isAuthenticated) {
-      navigate(redirectTo, { replace: true })
+      navigate(needsEmailVerification ? "/verify-email" : redirectTo, { replace: true })
     }
-  }, [awaitingProfile, loading, isAuthenticated, navigate, redirectTo])
+  }, [awaitingProfile, loading, isAuthenticated, needsEmailVerification, navigate, redirectTo])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -151,36 +153,34 @@ export default function Login() {
             </button>
           </form>
 
-          {OAUTH_ENABLED && (
-            <>
-              <div className="mt-[26px] flex items-center gap-[14px] text-[11px] uppercase tracking-[0.08em] text-white/35">
-                <span className="h-px flex-1 bg-white/10" />
-                {t("login.orContinueWith")}
-                <span className="h-px flex-1 bg-white/10" />
-              </div>
+          <div className="mt-[26px] flex items-center gap-[14px] text-[11px] uppercase tracking-[0.08em] text-white/35">
+            <span className="h-px flex-1 bg-white/10" />
+            {t("login.orContinueWith")}
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
 
-              <div className="mt-[18px] space-y-[10px]">
-                <button
-                  type="button"
-                  onClick={() => handleOAuth("google")}
-                  disabled={submitting}
-                  className="flex w-full items-center justify-center gap-[10px] rounded-[10px] border border-white/15 bg-white/[0.03] py-[12px] text-[14px] text-white transition hover:bg-white/[0.07] disabled:opacity-50"
-                >
-                  <GoogleIcon />
-                  {t("login.continueWithGoogle")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOAuth("microsoft")}
-                  disabled={submitting}
-                  className="flex w-full items-center justify-center gap-[10px] rounded-[10px] border border-white/15 bg-white/[0.03] py-[12px] text-[14px] text-white transition hover:bg-white/[0.07] disabled:opacity-50"
-                >
-                  <MicrosoftIcon />
-                  {t("login.continueWithMicrosoft")}
-                </button>
-              </div>
-            </>
-          )}
+          <div className="mt-[18px] space-y-[10px]">
+            <button
+              type="button"
+              onClick={() => handleOAuth("google")}
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-[10px] rounded-[10px] border border-white/15 bg-white/[0.03] py-[12px] text-[14px] text-white transition hover:bg-white/[0.07] disabled:opacity-50"
+            >
+              <GoogleIcon />
+              {t("login.continueWithGoogle")}
+            </button>
+            {MICROSOFT_ENABLED && (
+              <button
+                type="button"
+                onClick={() => handleOAuth("microsoft")}
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-[10px] rounded-[10px] border border-white/15 bg-white/[0.03] py-[12px] text-[14px] text-white transition hover:bg-white/[0.07] disabled:opacity-50"
+              >
+                <MicrosoftIcon />
+                {t("login.continueWithMicrosoft")}
+              </button>
+            )}
+          </div>
 
           <p className="mt-[26px] text-center text-[13px] text-white/55">
             {t("login.noAccount")}{" "}

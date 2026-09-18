@@ -196,7 +196,7 @@ const Footer = () => {
                     href={item.link || "#"}
                     aria-label={item.platform}
                     onClick={enabled ? (e) => e.preventDefault() : undefined}
-                    className="transition-colors duration-200 hover:text-[#ff4b00]"
+                    className="flex h-[34px] w-[34px] shrink-0 items-center justify-center transition-colors duration-200 hover:text-[#ff4b00]"
                   >
                     <SocialIcon platform={item.platform} icon={item.image} />
                   </a>
@@ -205,7 +205,7 @@ const Footer = () => {
                       orientation="horizontal"
                       published={item.published}
                       onEdit={(e) => openSocialEditor(item, e)}
-                      onDelete={() => confirm(`Delete "${item.platform}"?`) && deleteItem(item._id)}
+                      onDelete={() => confirm(t("common.confirmDeleteItem", { name: item.platform })) && deleteItem(item._id)}
                       onTogglePublish={() => updateItem(item._id, { published: !item.published })}
                       onMoveUp={() => moveSocial(index, -1)}
                       onMoveDown={() => moveSocial(index, 1)}

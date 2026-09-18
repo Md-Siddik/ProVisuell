@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import { ChevronDown, LayoutDashboard, LogOut, Plus, User } from "lucide-react"
+import { ChevronDown, LayoutDashboard, LogOut, Plus, ShoppingBag, User } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import { logout } from "../lib/firebaseAuth"
+import { getDisplayName } from "../lib/displayName"
 import { OPEN_ORDER_EVENT } from "./StartOrderModal"
 import NotificationBell from "./NotificationBell"
 import { useTranslation, LANGUAGES } from "../i18n"
@@ -67,20 +68,15 @@ const CloseIcon = () => (
 
 const openStartOrder = () => window.dispatchEvent(new Event(OPEN_ORDER_EVENT))
 
-// The header's user pill shows an identity, not an inbox address — a full
-// email is both visual clutter and unnecessary exposure. Falls back to the
-// email's local part (before the @) only when no display name is set.
-function displayName(profile) {
-  if (profile?.name) return profile.name
-  return profile?.email?.split("@")[0] || ""
-}
-
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef(null)
-  const { isAuthenticated, profile } = useAuth()
+  const { isAuthenticated, needsEmailVerification, profile, firebaseUser } = useAuth()
+  // Pending email verification is a Firebase session with no application
+  // access yet — don't let the bell fire an authenticated fetch for it.
+  const showNotifications = isAuthenticated && !needsEmailVerification
   const { language, setLanguage, t } = useTranslation()
   const { enabled } = useEditorMode()
   const { items: navLinks, addItem, updateItem, deleteItem, reorder } = useCmsCollection("headerNav")
@@ -122,7 +118,7 @@ const Header = () => {
         scrolled ? "border-b border-white/10 bg-[#0a0a0a]/95 backdrop-blur-md" : "bg-transparent"
       }`}
     >
-      <div className="flex h-[78px] w-full items-center justify-between px-[24px] sm:px-[28px] md:px-[36px] lg:px-[40px] xl:px-[46px]">
+      <div className="flex h-[78px] w-full items-center justify-between gap-[8px] px-[16px] sm:px-[28px] md:px-[36px] lg:px-[40px] xl:px-[46px]">
         <Logo />
 
         <div className="hidden items-center lg:flex">
@@ -167,7 +163,7 @@ const Header = () => {
                       orientation="horizontal"
                       published={item.published}
                       onEdit={(e) => openNavEditor(item, e)}
-                      onDelete={() => confirm(`Delete "${item.label}"?`) && deleteItem(item._id)}
+                      onDelete={() => confirm(t("common.confirmDeleteItem", { name: item.label })) && deleteItem(item._id)}
                       onTogglePublish={() => updateItem(item._id, { published: !item.published })}
                       onMoveUp={() => moveNavItem(index, -1)}
                       onMoveDown={() => moveNavItem(index, 1)}
@@ -193,7 +189,7 @@ const Header = () => {
 
           {isAuthenticated ? (
             <div className="ml-[28px] flex items-center gap-[10px]">
-              <NotificationBell />
+              {showNotifications && <NotificationBell />}
               <div ref={profileRef} className="relative">
                 <button
                   type="button"
@@ -203,7 +199,7 @@ const Header = () => {
                   <span className="flex h-[27px] w-[27px] items-center justify-center rounded-full bg-[#ff4b00]/20 text-[#ff4b00]">
                     <User size={14} strokeWidth={2.2} />
                   </span>
-                  <span className="max-w-[120px] truncate text-[12px] font-[600]">{displayName(profile)}</span>
+                  <span className="max-w-[120px] truncate text-[12px] font-[600]">{getDisplayName(profile, firebaseUser)}</span>
                   <ChevronDown size={14} className={`text-white/60 transition-transform ${profileOpen ? "rotate-180" : ""}`} />
                 </button>
 
@@ -254,24 +250,43 @@ const Header = () => {
           </button>
         </div>
 
-        <button
-          type="button"
-          aria-label={t("header.menuAriaLabel")}
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="flex h-[40px] w-[40px] items-center justify-center border border-white/40 text-white lg:hidden"
-        >
-          {menuOpen ? <CloseIcon /> : <MenuIcon />}
-        </button>
+        {/* Mobile-only cluster: notification bell, a compact always-visible
+            Order Now CTA, and the sidebar/menu trigger — grouped together so
+            none of them ever end up isolated off past the edge of a small
+            screen, and the primary CTA is visible without opening the menu. */}
+        <div className="flex shrink-0 items-center gap-[8px] lg:hidden">
+          {showNotifications && <NotificationBell />}
+
+          <button
+            type="button"
+            onClick={openStartOrder}
+            className="flex h-[36px] shrink-0 items-center gap-[6px] rounded-[8px] bg-[#ff4b00] px-[10px] text-[10px] font-[800] uppercase tracking-[0.03em] text-white"
+          >
+            <ShoppingBag size={14} className="shrink-0" />
+            <span className="hidden min-[360px]:inline whitespace-nowrap">
+              <EditableText k="header.startProject" />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            aria-label={t("header.menuAriaLabel")}
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="flex h-[36px] w-[36px] shrink-0 items-center justify-center border border-white/40 text-white"
+          >
+            {menuOpen ? <CloseIcon /> : <MenuIcon />}
+          </button>
+        </div>
       </div>
 
       <div
-        className={`absolute left-0 top-[78px] w-full overflow-hidden bg-[#0b0b0b]/95 backdrop-blur-xl transition-all duration-300 lg:hidden ${
+        className={`absolute left-0 top-[78px] w-full overflow-y-auto bg-[#0b0b0b]/95 backdrop-blur-xl transition-all duration-300 lg:hidden ${
           menuOpen
-            ? "max-h-[520px] border-t border-white/10 opacity-100"
+            ? "max-h-[calc(100vh-78px)] border-t border-white/10 opacity-100"
             : "max-h-0 opacity-0"
         }`}
       >
-        <nav className="flex flex-col px-[24px] py-[24px]">
+        <nav className="flex flex-col px-[16px] py-[20px] sm:px-[24px] sm:py-[24px]">
           {navLinks.map((item, index) => {
             const NavTag = (item.link || "").startsWith("#") ? "a" : Link
             const navProps = NavTag === "a" ? { href: item.link || "#" } : { to: item.link || "/" }
@@ -284,7 +299,7 @@ const Header = () => {
                   <CmsItemToolbar
                     published={item.published}
                     onEdit={(e) => openNavEditor(item, e)}
-                    onDelete={() => confirm(`Delete "${item.label}"?`) && deleteItem(item._id)}
+                    onDelete={() => confirm(t("common.confirmDeleteItem", { name: item.label })) && deleteItem(item._id)}
                     onTogglePublish={() => updateItem(item._id, { published: !item.published })}
                     onMoveUp={() => moveNavItem(index, -1)}
                     onMoveDown={() => moveNavItem(index, 1)}
@@ -318,17 +333,14 @@ const Header = () => {
 
           {isAuthenticated ? (
             <>
-              <div className="flex items-center justify-between gap-[12px] border-b border-white/10 py-[16px]">
-                <div className="flex items-center gap-[12px]">
-                  <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#ff4b00]/20 text-[#ff4b00]">
-                    <User size={17} strokeWidth={2.2} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-[700] text-white">{displayName(profile)}</p>
-                    <p className="truncate text-[11px] text-white/45">{profile?.email}</p>
-                  </div>
+              <div className="flex items-center gap-[12px] border-b border-white/10 py-[16px]">
+                <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#ff4b00]/20 text-[#ff4b00]">
+                  <User size={17} strokeWidth={2.2} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-[700] text-white">{getDisplayName(profile, firebaseUser)}</p>
+                  <p className="truncate text-[11px] text-white/45">{profile?.email}</p>
                 </div>
-                <NotificationBell />
               </div>
               <Link
                 to="/dashboard"

@@ -6,7 +6,7 @@ import { friendlyAuthError, loginWithGoogle, loginWithMicrosoft, signUpWithEmail
 import { useTranslation } from "../i18n"
 
 // Kept in sync with Login.jsx's flag — see the comment there.
-const OAUTH_ENABLED = false
+const MICROSOFT_ENABLED = false
 
 export default function Signup() {
   const { t } = useTranslation()
@@ -18,18 +18,20 @@ export default function Signup() {
   const [submitting, setSubmitting] = useState(false)
   const [awaitingProfile, setAwaitingProfile] = useState(false)
   const navigate = useNavigate()
-  const { loading, isAuthenticated } = useAuth()
+  const { loading, isAuthenticated, needsEmailVerification } = useAuth()
 
   // Don't navigate the instant Firebase resolves — AuthContext's own
   // profile sync (which resolves the role the redirect depends on) is
   // still in flight at that point. Navigating here, only once loading
   // has actually settled, is what makes the role-based redirect reliable
-  // instead of racing a still-pending network call.
+  // instead of racing a still-pending network call. A brand-new
+  // email/password account is unverified at this point, so it goes to the
+  // verification screen rather than straight into the app.
   useEffect(() => {
     if (awaitingProfile && !loading && isAuthenticated) {
-      navigate("/dashboard", { replace: true })
+      navigate(needsEmailVerification ? "/verify-email" : "/dashboard", { replace: true })
     }
-  }, [awaitingProfile, loading, isAuthenticated, navigate])
+  }, [awaitingProfile, loading, isAuthenticated, needsEmailVerification, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -126,34 +128,32 @@ export default function Signup() {
             </button>
           </form>
 
-          {OAUTH_ENABLED && (
-            <>
-              <div className="mt-[26px] flex items-center gap-[14px] text-[11px] uppercase tracking-[0.08em] text-white/35">
-                <span className="h-px flex-1 bg-white/10" />
-                {t("signup.orContinueWith")}
-                <span className="h-px flex-1 bg-white/10" />
-              </div>
+          <div className="mt-[26px] flex items-center gap-[14px] text-[11px] uppercase tracking-[0.08em] text-white/35">
+            <span className="h-px flex-1 bg-white/10" />
+            {t("signup.orContinueWith")}
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
 
-              <div className="mt-[18px] space-y-[10px]">
-                <button
-                  type="button"
-                  onClick={() => handleOAuth("google")}
-                  disabled={submitting}
-                  className="flex w-full items-center justify-center gap-[10px] rounded-[10px] border border-white/15 bg-white/[0.03] py-[12px] text-[14px] text-white transition hover:bg-white/[0.07] disabled:opacity-50"
-                >
-                  {t("signup.continueWithGoogle")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOAuth("microsoft")}
-                  disabled={submitting}
-                  className="flex w-full items-center justify-center gap-[10px] rounded-[10px] border border-white/15 bg-white/[0.03] py-[12px] text-[14px] text-white transition hover:bg-white/[0.07] disabled:opacity-50"
-                >
-                  {t("signup.continueWithMicrosoft")}
-                </button>
-              </div>
-            </>
-          )}
+          <div className="mt-[18px] space-y-[10px]">
+            <button
+              type="button"
+              onClick={() => handleOAuth("google")}
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-[10px] rounded-[10px] border border-white/15 bg-white/[0.03] py-[12px] text-[14px] text-white transition hover:bg-white/[0.07] disabled:opacity-50"
+            >
+              {t("signup.continueWithGoogle")}
+            </button>
+            {MICROSOFT_ENABLED && (
+              <button
+                type="button"
+                onClick={() => handleOAuth("microsoft")}
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-[10px] rounded-[10px] border border-white/15 bg-white/[0.03] py-[12px] text-[14px] text-white transition hover:bg-white/[0.07] disabled:opacity-50"
+              >
+                {t("signup.continueWithMicrosoft")}
+              </button>
+            )}
+          </div>
 
           <p className="mt-[26px] text-center text-[13px] text-white/55">
             {t("signup.haveAccount")}{" "}

@@ -289,7 +289,7 @@ const Result = () => {
     item,
     enabled,
     onEdit: (e) => openEditor(item, e),
-    onDelete: () => confirm(`Delete "${item.title}"?`) && deleteItem(item._id),
+    onDelete: () => confirm(t("common.confirmDeleteItem", { name: item.title })) && deleteItem(item._id),
     onTogglePublish: () => updateItem(item._id, { published: !item.published }),
     onMoveUp: () => move(index, -1),
     onMoveDown: () => move(index, 1),
@@ -538,7 +538,7 @@ const Result = () => {
               <MapPinIcon />
             </div>
 
-            <h3 className="mt-[8px] whitespace-nowrap text-[27px] font-[800] leading-none text-white">
+            <h3 className="mt-[8px] break-words text-[27px] font-[800] leading-none text-white">
               <EditableText k="results.statNationwideValue" />
             </h3>
 

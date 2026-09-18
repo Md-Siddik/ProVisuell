@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { CheckCircle2, Mail, Smartphone, X } from "lucide-react"
+import { CheckCircle2, Mail, X } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import { api } from "../lib/api"
 import { useTranslation } from "../i18n"
@@ -17,14 +17,6 @@ export default function EmailComposeModal({ onClose }) {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
-  const mailtoHref = () => {
-    const subject = encodeURIComponent(
-      t("emailComposeModal.mailtoSubject", { name: name || t("emailComposeModal.mailtoWebsiteFallback") })
-    )
-    const body = encodeURIComponent(`${message}\n\n— ${name} (${email})`)
-    return `mailto:${BUSINESS_EMAIL}?subject=${subject}&body=${body}`
-  }
-
   const handleSendDirect = async (e) => {
     e.preventDefault()
     setError("")
@@ -34,7 +26,8 @@ export default function EmailComposeModal({ onClose }) {
       await api.public.post("/email/send", { name, email, message })
       setSent(true)
     } catch (err) {
-      if (err.message?.toLowerCase().includes("not configured") || err.message?.toLowerCase().includes("isn't configured")) {
+      const raw = (err.rawMessage || err.message || "").toLowerCase()
+      if (raw.includes("not configured") || raw.includes("isn't configured")) {
         setNotConfigured(true)
       } else {
         setError(err.message)
@@ -119,23 +112,14 @@ export default function EmailComposeModal({ onClose }) {
                 />
               </div>
 
-              <div className="flex flex-col gap-[8px] sm:flex-row">
-                <button
-                  type="submit"
-                  disabled={sending}
-                  className="flex flex-1 items-center justify-center gap-[8px] rounded-[10px] bg-[#ff4b00] py-[11px] text-[12.5px] font-[800] uppercase tracking-[0.02em] text-white hover:brightness-110 disabled:opacity-50"
-                >
-                  <Mail size={14} />
-                  {sending ? t("emailComposeModal.sending") : t("emailComposeModal.sendDirect")}
-                </button>
-                <a
-                  href={mailtoHref()}
-                  className="flex flex-1 items-center justify-center gap-[8px] rounded-[10px] border border-white/15 py-[11px] text-[12.5px] font-[700] text-white hover:bg-white/[0.06]"
-                >
-                  <Smartphone size={14} />
-                  {t("emailComposeModal.openMailApp")}
-                </a>
-              </div>
+              <button
+                type="submit"
+                disabled={sending}
+                className="flex w-full items-center justify-center gap-[8px] rounded-[10px] bg-[#ff4b00] py-[11px] text-[12.5px] font-[800] uppercase tracking-[0.02em] text-white hover:brightness-110 disabled:opacity-50"
+              >
+                <Mail size={14} />
+                {sending ? t("emailComposeModal.sending") : t("emailComposeModal.sendDirect")}
+              </button>
             </form>
           </>
         )}

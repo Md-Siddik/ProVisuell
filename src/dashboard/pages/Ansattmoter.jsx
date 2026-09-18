@@ -28,9 +28,29 @@ const DAY_LABEL_KEYS = [
   "appointmentsPage.daySun",
 ]
 const START_HOUR = 8
-const END_HOUR = 18
-const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i)
+// Floor, not a ceiling — the grid always extends at least this far, but
+// widens further (see `useEndHour` below) for whatever evening appointments
+// actually exist that week. Admins can book a meeting at any time via
+// NewMeetingModal's plain time input, so 18:00 was never a real limit.
+const MIN_END_HOUR = 18
 const ROW_HEIGHT = 84 // px per hour, must match the h-[84px] rows below — tall enough that even a 30-min slot fits a title + time line
+
+// The grid must be tall enough to hold every appointment that week,
+// however late it runs — never a fixed cutoff that clips evening bookings.
+function useEndHour(appointments) {
+  return useMemo(() => {
+    let end = MIN_END_HOUR
+    for (const appt of appointments) {
+      if (appt.status === "cancelled") continue
+      const finish = new Date(appt.end)
+      if (Number.isNaN(finish.getTime())) continue
+      let hour = finish.getHours()
+      if (finish.getMinutes() > 0) hour += 1
+      if (hour > end) end = hour
+    }
+    return Math.min(end, 24)
+  }, [appointments])
+}
 
 // waiting = violet, approved = theme orange, completed = green, rejected = red.
 const ORDER_STATUS_STYLE = {
@@ -448,6 +468,12 @@ export default function Ansattmoter() {
     return d
   }, [weekStart])
 
+  const endHour = useEndHour(appointments)
+  const HOURS = useMemo(
+    () => Array.from({ length: endHour - START_HOUR + 1 }, (_, i) => START_HOUR + i),
+    [endHour]
+  )
+
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -632,6 +658,7 @@ export default function Ansattmoter() {
             </div>
           )}
 
+          <div className="relative max-h-[70vh] overflow-y-auto">
           <div className="relative grid grid-cols-[56px_repeat(7,1fr)]">
             <div>
               {HOURS.map((h) => (
@@ -701,6 +728,7 @@ export default function Ansattmoter() {
                 })}
               </div>
             ))}
+          </div>
           </div>
         </div>
       </div>

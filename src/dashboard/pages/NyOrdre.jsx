@@ -233,7 +233,7 @@ export default function NyOrdre() {
 
       {error && <p className="mt-[16px] rounded-[8px] bg-red-500/10 px-[12px] py-[8px] text-[13px] text-red-300">{error}</p>}
 
-      <form onSubmit={handleSubmit} className="mt-[20px] max-w-[680px] space-y-[18px] rounded-[16px] border border-white/[0.08] bg-[#111212] p-[22px]">
+      <form onSubmit={handleSubmit} className="mt-[20px] w-full max-w-[680px] space-y-[18px] rounded-[16px] border border-white/[0.08] bg-[#111212] p-[16px] sm:p-[22px]">
         <div ref={suggestionBoxRef} className="relative">
           <label className="mb-[7px] block text-[13px] font-[600] text-white/80">
             {t("newOrderPage.customerLabel")} <span className="text-[#ff4b00]">*</span>
@@ -261,10 +261,10 @@ export default function NyOrdre() {
                   <button
                     type="button"
                     onClick={() => selectCustomerAccount(c)}
-                    className="flex w-full flex-col items-start px-[14px] py-[10px] text-left transition-colors hover:bg-white/[0.06]"
+                    className="flex w-full min-w-0 flex-col items-start px-[14px] py-[10px] text-left transition-colors hover:bg-white/[0.06]"
                   >
-                    <span className="text-[13.5px] font-[700] text-white">{c.name || t("newOrderPage.noName")}</span>
-                    <span className="text-[12px] text-white/50">{c.email}</span>
+                    <span className="max-w-full truncate text-[13.5px] font-[700] text-white">{c.name || t("newOrderPage.noName")}</span>
+                    <span className="max-w-full truncate text-[12px] text-white/50">{c.email}</span>
                   </button>
                 </li>
               ))}
@@ -397,12 +397,12 @@ export default function NyOrdre() {
               return (
                 <div key={index} className="rounded-[10px] border border-white/12 bg-white/[0.02] p-[12px]">
                   <div className="flex items-start gap-[10px]">
-                    <div className="grid flex-1 grid-cols-2 gap-[8px] sm:grid-cols-[1.7fr_0.7fr_0.8fr_0.9fr_0.7fr]">
+                    <div className="grid min-w-0 flex-1 grid-cols-2 gap-[8px] sm:grid-cols-[1.7fr_0.7fr_0.8fr_0.9fr_0.7fr]">
                       <input
                         value={item.name}
                         onChange={(e) => updateItem(index, "name", e.target.value)}
                         placeholder={t("newOrderPage.itemNamePlaceholder")}
-                        className="col-span-2 rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00] sm:col-span-1"
+                        className="col-span-2 w-full min-w-0 rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00] sm:col-span-1"
                       />
                       <input
                         type="number"
@@ -410,13 +410,13 @@ export default function NyOrdre() {
                         value={item.quantity}
                         onChange={(e) => updateItem(index, "quantity", e.target.value)}
                         placeholder={t("newOrderPage.itemQuantityPlaceholder")}
-                        className="rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00]"
+                        className="w-full min-w-0 rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00]"
                       />
                       <input
                         value={item.unit}
                         onChange={(e) => updateItem(index, "unit", e.target.value)}
                         placeholder={t("newOrderPage.itemUnitPlaceholder")}
-                        className="rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00]"
+                        className="w-full min-w-0 rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00]"
                       />
                       <input
                         type="number"
@@ -425,12 +425,12 @@ export default function NyOrdre() {
                         value={item.unitPrice}
                         onChange={(e) => updateItem(index, "unitPrice", e.target.value)}
                         placeholder={t("newOrderPage.itemPricePlaceholder")}
-                        className="rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00]"
+                        className="w-full min-w-0 rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00]"
                       />
                       <select
                         value={item.vatRate}
                         onChange={(e) => updateItem(index, "vatRate", e.target.value)}
-                        className="rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00]"
+                        className="w-full min-w-0 rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[8px] text-[13px] text-white outline-none focus:border-[#ff4b00]"
                       >
                         {VAT_RATES.map((r) => (
                           <option key={r} value={r} className="bg-[#111212]">
@@ -454,7 +454,7 @@ export default function NyOrdre() {
                     value={item.description}
                     onChange={(e) => updateItem(index, "description", e.target.value)}
                     placeholder={t("newOrderPage.itemDescriptionPlaceholder")}
-                    className="mt-[8px] w-full rounded-[8px] border border-white/10 bg-white/[0.02] px-[10px] py-[7px] text-[12.5px] text-white/80 outline-none focus:border-[#ff4b00]"
+                    className="mt-[8px] w-full min-w-0 rounded-[8px] border border-white/10 bg-white/[0.02] px-[10px] py-[7px] text-[12.5px] text-white/80 outline-none focus:border-[#ff4b00]"
                   />
                   {lineTotal > 0 && (
                     <p className="mt-[6px] text-right text-[11.5px] text-white/45">
@@ -472,7 +472,7 @@ export default function NyOrdre() {
               <span className="text-white/85">{nok(totals.subtotal)}</span>
             </div>
             <div className="mt-[8px] flex items-center justify-between gap-[10px] text-[13px] text-white/60">
-              <span>{t("newOrderPage.discountLabel")}</span>
+              <span className="shrink-0">{t("newOrderPage.discountLabel")}</span>
               <input
                 type="number"
                 min="0"
@@ -480,7 +480,7 @@ export default function NyOrdre() {
                 value={discount}
                 onChange={(e) => setDiscount(e.target.value)}
                 placeholder="0"
-                className="w-[130px] rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[6px] text-right text-[13px] text-white outline-none focus:border-[#ff4b00]"
+                className="w-full min-w-0 max-w-[130px] rounded-[8px] border border-white/15 bg-white/[0.03] px-[10px] py-[6px] text-right text-[13px] text-white outline-none focus:border-[#ff4b00]"
               />
             </div>
             <div className="mt-[8px] flex items-center justify-between text-[13px] text-white/60">
@@ -521,10 +521,10 @@ export default function NyOrdre() {
           {files.length > 0 && (
             <ul className="mt-[10px] space-y-[6px]">
               {files.map((f, i) => (
-                <li key={i} className="flex items-center justify-between rounded-[8px] border border-white/10 bg-white/[0.03] px-[12px] py-[8px]">
-                  <span className="flex items-center gap-[8px] truncate text-[12.5px] text-white/80">
+                <li key={i} className="flex items-center justify-between gap-[8px] rounded-[8px] border border-white/10 bg-white/[0.03] px-[12px] py-[8px]">
+                  <span className="flex min-w-0 flex-1 items-center gap-[8px] text-[12.5px] text-white/80">
                     <File size={14} className="shrink-0 text-white/40" />
-                    <span className="truncate">{f.name}</span>
+                    <span className="min-w-0 flex-1 truncate">{f.name}</span>
                   </span>
                   <button type="button" onClick={() => removeFile(i)} className="shrink-0 text-white/40 hover:text-red-400">
                     <X size={14} />
